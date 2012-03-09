@@ -19,14 +19,9 @@ public class FixtureManager {
 		DB db = mongo.getDB("bardwalk-test");
 
 		FixtureResource resource = new FileFixtureResource("c:/dev/db/comment.fixture");
-		//Fixture.restoreFixture(db, "comment", resource);
-		Fixture.saveFixture(db, "comment", resource);
+		Fixture.restoreFixture(db, "comment", resource);
+	//	Fixture.saveFixture(db, "comment", resource);
 		
-		DBCollection collection = db.getCollection("comment");
-		DBCursor cursorDoc = collection.find();
-		while (cursorDoc.hasNext()) {
-			System.out.println(cursorDoc.next());
-		}
 	}
 	
 }

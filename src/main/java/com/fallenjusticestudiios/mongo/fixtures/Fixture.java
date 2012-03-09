@@ -44,12 +44,25 @@ public class Fixture {
 			output.println(cursor.next());
 			savedDocuments++;
 		}
-		log.info("Saved [" + savedDocuments + "] documents with [" + savedIndexes + "] indexes in " + resource);
+		log.info("Saved [" + savedDocuments + "] documents with [" + savedIndexes + "] indexes form [" + db.getName() + "." + name +  "] in "  + resource);
 		resource.close();
 		
 	}
-
 	public static void restoreFixture(DB db, String name, FixtureResource resource) throws IOException {
+		restoreFixture(db, name, resource, true);
+	}
+	
+	
+	/** Restore the documents and indexes contained in the the given Resources to a collection in the given DB with
+	 * the given name.
+	 * @param db the mongo database.
+	 * @param name the name of the collection to restored.
+	 * @param resource containing the restore information. 
+	 * @param nameMustMatch if true, name mismatches between the given collection name and the collection name that is stored
+	 * in the given resource will cause a IllegalArgumentException to be thrown.
+	 * @throws IllegalArgumentException @see namesMustMatch
+	 */
+	public static void restoreFixture(DB db, String name, FixtureResource resource, boolean nameMustMatch) throws IOException {
 		log.info("Restoring [" + db.getName() + "." + db.getCollection(name) + "] from " + resource);
 		
 		LineNumberReader lnr = new LineNumberReader(resource.getReader());
@@ -57,8 +70,9 @@ public class Fixture {
 		
 		if (!storeName.equals(name)) {
 			String message = "Stored fixture name [" + storeName + "] doesn't match collection name [" + name + "] for restore.";
-			log.error(message);
-			throw new RuntimeException(message);
+			log.debug(message);
+			if (nameMustMatch) 
+				throw new RuntimeException(message);
 		}
 
 		DBCollection collection = db.getCollection(name);
@@ -88,14 +102,22 @@ public class Fixture {
 					blankLines++;
 			} 
 			
+			log.debug("Finished restoring [" +  restoredDocuments + "].");
+			
+			log.debug("Starting to restore indexes.");
 			for (DBObject index : indexes) {
 				collection.createIndex(index);
 			}
-			
-			
-			log.info("Restored [" + restoredDocuments + "] with [" + indexes.size() + "]");
+			if (indexes.size() > 0)
+				log.debug("Finished restoring [" + indexes.size() + "] indexes.");
+			else
+				log.debug("There were no indexes to restore.");
+						
+			log.info("Restored [" + restoredDocuments + "] documents with [" + indexes.size() + "] indexes into [" + db.getName() + "." + name + "] from " + resource );
+			log.debug(resource + " had\n[" + lnr.getLineNumber() + "] lines, of which,\n[" + restoredDocuments + "] were documents.\n[" + indexes.size() + 
+					"] were indexes.\n[" + blankLines + " where blank.\n[1] was the name of the collection");  
 		} catch (Throwable t) {
-			log.error("Handling line " + lnr.getLineNumber() + " of " + resource + "\nline was[" + line + "]", t);
+			log.error("Handling line " + lnr.getLineNumber() + " of " + resource + "\nline was[" + line + "] ", t);
 		}
 		
 		resource.close();
